@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using DG.Tweening;
 	
-namespace nopact.Game.Animations
+namespace nopact.ShapeCutter.Animations
 {
 	public class LoopedMoveTween : MonoBehaviour
 	{

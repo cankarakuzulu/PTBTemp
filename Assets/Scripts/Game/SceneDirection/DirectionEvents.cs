@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using Game.SceneDirection;
 using nopact.Commons.Analytics;
 using nopact.Commons.SceneDirection;
 using nopact.Game.PlaySession;
+using nopact.ShapeCutter.PlaySession;
+using UnityEngine;
 
 namespace nopact.Game.SceneDirection
 {
