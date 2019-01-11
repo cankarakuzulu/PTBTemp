@@ -1,6 +1,4 @@
 ﻿using nopact.Commons.UI.PanelWorks;
-using nopact.ShapeCutter.PlaySession;
-using UnityEngine;
 
 namespace nopact.Game.UI.Panels
 {

@@ -2,7 +2,7 @@
 using nopact.Game.SceneDirection;
 using UnityEngine;
 
-namespace nopact.PopTheBlock
+namespace nopact.PopTheCube
 {
 	public class PopTheBlockDirector : DirectorBase {
 		
