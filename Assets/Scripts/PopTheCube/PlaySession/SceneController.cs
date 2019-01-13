@@ -59,8 +59,8 @@ namespace nopact.PopTheCube.PlaySession
 
         private IEnumerator WaitAndBreak(Block b, bool isOnLeft)
         {
-            yield return new WaitForSeconds(0.2f);
-            _stack.RemoveBlock(b, isOnLeft ? Block.DestructionType.Left : Block.DestructionType.Right);
+            yield return new WaitForSeconds(0.1f);
+            _stack.Break(b, isOnLeft ? Block.DestructionType.Left : Block.DestructionType.Right);
         }
 
         private IEnumerator ExecuteStartSequence( )

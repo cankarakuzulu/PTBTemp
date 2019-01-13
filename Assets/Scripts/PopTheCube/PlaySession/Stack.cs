@@ -42,13 +42,13 @@ namespace nopact.PopTheCube.PlaySession
             SetTargets();
         }
 
-        public void RemoveBlock( int blockIndex, Block.DestructionType dType)
+        private void RemoveBlock( int blockIndex, Block.DestructionType dType)
         {
             var removalBlock = blockList[blockIndex];
             RemoveBlock(removalBlock, dType);
         }
 
-        public void RemoveBlock(Block b, Block.DestructionType dType)
+        private void RemoveBlock(Block b, Block.DestructionType dType)
         {
             var breakable = GetFreeBreakable;
             b.Kill(breakable, dType );
@@ -64,19 +64,25 @@ namespace nopact.PopTheCube.PlaySession
             {
                 return false;
             }
-            
+
+            var bladeRect = new Rect( -2.5f, yPos-0.2f, 5,0.4f);
+            DebugRect(bladeRect, Color.yellow, 0.5f);
+         
             for (int blockIndex = blockList.Count-1; blockIndex >= 0; blockIndex--)
             {
                 var current = blockList[blockIndex];
                 
-                if (Mathf.Abs(current.YPosition - yPos )< blockHeight *0.5f)
+                var hitbox = new Rect( -1.5f, current.YPosition-blockHeight*0.5f, 3, blockHeight );
+                
+                if (hitbox.Overlaps(bladeRect))
                 {
+                    DebugRect(hitbox, Color.blue, 0.5f);
                     block = current;
                     if (current.BlockType == Block.Type.N)
                     {
                         return true;
                     }
-                     return false;
+                    return false;
                 }
             }
             return false;
@@ -98,14 +104,14 @@ namespace nopact.PopTheCube.PlaySession
         
         private void StartCreationLoop()
         {
-            StartCoroutine(OnBlockAdditionTimer());
+            StartCoroutine(BlockGenerationTimer());
         }
  
-        private IEnumerator OnBlockAdditionTimer()
+        private IEnumerator BlockGenerationTimer()
         {
             while (true)
             {
-                yield return new WaitForSeconds(1f);
+                yield return new WaitForSeconds(0.5f);
                 if (blockCreationQueue.Count == 0)
                 {
                     continue;
@@ -127,12 +133,15 @@ namespace nopact.PopTheCube.PlaySession
             {
                 return;
             }
-            CheckCollisions();
+
             for (int blockIndex = 0; blockIndex < blockList.Count; blockIndex++)
             {
                 var b = blockList[blockIndex];
                 b.PhysicsUpdate();
-            }    
+                //Debug.Log($"Block {blockIndex} Ypos {b.YPosition} Target {b.Target}");
+            }
+            SetTargets();
+            CheckCollisions();
         }
 
         private void Update()
@@ -185,6 +194,13 @@ namespace nopact.PopTheCube.PlaySession
             CreateBreakables();
         }
 
+        private void DebugRect(Rect rect, Color color, float duration)
+        {
+            Debug.DrawLine(new Vector3(rect.xMin, rect.yMin,0), new Vector3(rect.xMax, rect.yMin,0),color, duration);
+            Debug.DrawLine(new Vector3(rect.xMin, rect.yMax,0), new Vector3(rect.xMax, rect.yMax,0),color, duration);
+            Debug.DrawLine(new Vector3(rect.xMin, rect.yMin,0), new Vector3(rect.xMin, rect.yMax,0),color, duration);
+            Debug.DrawLine(new Vector3(rect.xMax, rect.yMin,0), new Vector3(rect.xMax, rect.yMax,0),color, duration);
+        }
         private void CreateBreakables()
         {
             breakingBlocks = new BreakingBlock.BreakingBlock[12];
@@ -216,8 +232,9 @@ namespace nopact.PopTheCube.PlaySession
         private void CheckCollisions()
         {
             
-            for (int blockIndex = blockList.Count-1; blockIndex > 0; blockIndex--)
+            for (int blockIndex = blockList.Count-2; blockIndex > 0; blockIndex--)
             {
+                var next = blockList[blockIndex + 1];
                 var current = blockList[blockIndex];
                 var previous = blockList[blockIndex-1];
 
@@ -228,6 +245,7 @@ namespace nopact.PopTheCube.PlaySession
                 }
             }
         }
+
 
         private void SetTargets()
         {
@@ -240,7 +258,6 @@ namespace nopact.PopTheCube.PlaySession
             {
                 var b = blockList[blockIndex];
                 b.Target =blockIndex*blockHeight;
-                //Debug.Log($"Block Index {blockIndex} Pos: {b.YPosition} Target: {b.Target}");
             }    
         }
     }

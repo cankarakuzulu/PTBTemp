@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 using DG.Tweening;
 
@@ -7,10 +8,10 @@ namespace nopact.PopTheCube.PlaySession.Player
 	public class PlayerController : MonoBehaviour
 	{
 		public event Action<float, bool> OnDash;
-		[SerializeField] protected ParticleSystem dashParticle;
+		[SerializeField] protected TrailRenderer dashTrail;
 		private const float  AIR_DRAG = 0.3f;
 		private Transform xform;
-		private Limits limits = new Limits(0.0f, 10.5f);
+		private Limits limits = new Limits(-0.5f, 10.5f);
 		private Limits xAlignments = new Limits( -2.4f, 2.4f);
 		private MotionTypes motionState;
 		private Tween dashTween, rotationTween;
@@ -31,15 +32,16 @@ namespace nopact.PopTheCube.PlaySession.Player
 
 		public void Dash()
 		{
-			if (motionState == MotionTypes.Dash)
+			if (motionState == MotionTypes.Dash || motionState == MotionTypes.Entry )
 			{
 				return;
 			}
-			
+
+			dashTrail.emitting = true;
 			motionState = MotionTypes.Dash;
 			var target = isInLeft ? xAlignments.Lower -1.0f : xAlignments.Upper + 1.0f;
 			dashTween = xform.DOMoveX(target, 0.05f);
-			dashTween.SetEase(Ease.OutSine);
+			dashTween.SetEase(Ease.InSine);
 			dashTween.OnComplete(OnRetractionComplete);
 			rotationTween = xform.DORotate( Vector3.forward * 180, 0.3f);
 			rotationTween.SetRelative(true);
@@ -47,6 +49,7 @@ namespace nopact.PopTheCube.PlaySession.Player
 
 		public void FailDash()
 		{
+			dashTrail.emitting = true;
 			motionState = MotionTypes.Freefall;
 			dashTween.Pause();
 			DOTween.Kill(dashTween);
@@ -86,31 +89,25 @@ namespace nopact.PopTheCube.PlaySession.Player
 		
 		private void OnInitializatonComplete()
 		{
+			dashTrail.emitting = false;
 			motionState = MotionTypes.Vertical;
 		}
 		private void OnRetractionComplete()
 		{
-			var target = !isInLeft ? xAlignments.Upper-0.8f : xAlignments.Lower+0.8f;
-			dashTween = xform.DOMoveX(target, 0.05f);
-			dashTween.SetEase(Ease.InExpo);
-			dashTween.OnComplete(OnDashAttemptComplete);
-			
-		}
-		private void OnDashAttemptComplete()
-		{
 			OnDash?.Invoke( YPosition, isInLeft);
 			var target = isInLeft ? xAlignments.Upper : xAlignments.Lower;
 			dashTween = xform.DOMoveX(target, 0.2f);
-			dashTween.SetEase(Ease.InExpo);
-			dashTween.OnComplete(OnDashComplete);
+			dashTween.SetEase(Ease.OutSine);
+			StartCoroutine(StartRotation());
 		}
-		
-		private void OnDashComplete()
+
+		private IEnumerator StartRotation()
 		{
-			dashTween = xform.DORotate(Vector3.up * 180, 0.15f);
-			dashTween.SetEase(Ease.OutExpo);
-			dashTween.SetRelative(true);
-			dashTween.OnComplete(OnRotationComplete);
+			yield return new WaitForSeconds(0.1f);
+			rotationTween = xform.DORotate(Vector3.up * 180, 0.15f);
+			rotationTween.SetEase(Ease.OutExpo);
+			rotationTween.SetRelative(true);
+			rotationTween.OnComplete(OnRotationComplete);
 		}
 
 		private void OnRotationComplete()
@@ -119,6 +116,9 @@ namespace nopact.PopTheCube.PlaySession.Player
 			{
 				return;
 			}
+
+			dashTrail.emitting = false;
+			dashTween.Complete();
 			isInLeft = !isInLeft;
 			Velocity = -Velocity;
 			motionState = MotionTypes.Vertical;
@@ -146,6 +146,7 @@ namespace nopact.PopTheCube.PlaySession.Player
 
 		private void OnFlyAwayCompleted()
 		{
+			dashTrail.emitting = false;
 			rotationTween.SetLoops(1, LoopType.Restart);
 			rotationTween.Complete();
 			DOTween.Kill(rotationTween);

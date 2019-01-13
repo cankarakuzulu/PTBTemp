@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.Contracts;
 using nopact.PopTheCube.PlaySession.BreakingBlock;
 using UnityEngine;
 
@@ -6,8 +7,8 @@ namespace nopact.PopTheCube.PlaySession
 {
     public class Block : MonoBehaviour
     {
-        private const float G = -23.43f;
-        private const float  COLLISION_ELASTICITY =0.2f;
+        private const float G = -24f;
+        private const float  COLLISION_ELASTICITY =0.4f;
         private const float  AIR_DRAG = 0.0f;
         private GameObject uObject;
         private Transform xform;
@@ -15,6 +16,7 @@ namespace nopact.PopTheCube.PlaySession
         private bool isInitialized;
         private BlockProperties properties;
         private BreakingBlock.BreakingBlock breakingBlock;
+        private float target;
         #region PublicAPI
         
         public void Initialize( Type blockType, float yPosition, BlockProperties properties )
@@ -29,23 +31,32 @@ namespace nopact.PopTheCube.PlaySession
 
         public void Collide(Block  other)
         {
+            IsAtRest = false;
             float resultantTotalVelocityMagnitude = Mathf.Abs (other.Velocity) +Mathf.Abs ( Velocity);
             other.Velocity += -Mathf.Sign(other.Velocity) * resultantTotalVelocityMagnitude *0.5f * ( COLLISION_ELASTICITY + 1);
             Velocity += -Mathf.Sign(Velocity) * resultantTotalVelocityMagnitude*0.5f* ( COLLISION_ELASTICITY + 1);
+            SetPos();
         }
 
         public void PhysicsUpdate()
         {
-            if (YPosition == Target || YPosition == 0 || !isInitialized)
+            if ( !isInitialized)
             {
                 return;
             }
+           
+            IsAtRest = ConstraintPos();
             
-            SetPos();
-            ConstraintPos();
-            Drop();
+            if (!IsAtRest)
+            {
+                Drop();    
+            }
+//            DebugLevel( YPosition, Color.green);
+//            DebugLevel( YPosition +1f, Color.red);
+//            DebugLevel( YPosition - 1f, Color.cyan);
+                SetPos();
         }
-
+           
         public void Kill(BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
         {
             renderer.enabled = false;
@@ -83,6 +94,8 @@ namespace nopact.PopTheCube.PlaySession
             xform = GetComponent<Transform>();
             uObject = gameObject;
         }
+
+        
         #endregion
         
         private void SetProperties()
@@ -96,26 +109,23 @@ namespace nopact.PopTheCube.PlaySession
             YPosition += Velocity * Time.deltaTime - Velocity * AIR_DRAG * Time.deltaTime;
         }
 
-        private void ConstraintPos()
+        private bool ConstraintPos()
         {
             if (YPosition < 0)
             {
                 YPosition = 0;
                 Velocity = 0;
-                IsAtRest = true;
-                return;
+                return true;
             }
 
-            if (YPosition < Target)
+            if (YPosition <= Target)
             {
                 Velocity = 0;
-                IsAtRest = true;
+                YPosition = Target;
+                return true;
             }
 
-            if (Velocity != 0)
-            {
-                IsAtRest = false;
-            }
+            return false;
         }
         
         private void SetPos()
@@ -127,12 +137,29 @@ namespace nopact.PopTheCube.PlaySession
                 z= xform.position.z
             };
         }
-        
+
+        private void DebugLevel(float pos, Color color)
+        {
+            Vector3 p1 = new Vector3{ x= -2, y = pos, z = 0 };
+            Vector3 p2 = new Vector3{ x= 2, y = pos, z = 0 };
+            
+            Debug.DrawLine( p1, p2, color );
+        }
 
         public GameObject UObject => uObject;
         public float Velocity { get; set; }
         public float YPosition { get; set; }
-        public float Target { get;  set; }
+        public float Target {
+            get { return target; }
+            set
+            {
+                if (value != target)
+                {
+                    IsAtRest = false;
+                }
+
+                target = value;
+            } }
         public Type BlockType { get; private set; }
         public bool IsAtRest { get; private set; }
         public enum Type
