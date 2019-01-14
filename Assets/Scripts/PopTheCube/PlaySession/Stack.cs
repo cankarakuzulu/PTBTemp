@@ -2,10 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.SymbolStore;
-using nopact.Commons.Utility.Timer;
-using nopact.PopTheCube.PlaySession.BreakingBlock;
-using nopact.PopTheCube.PlaySession.Player;
+using System.Linq;
 using Random = UnityEngine.Random;
 
 namespace nopact.PopTheCube.PlaySession
@@ -17,10 +14,12 @@ namespace nopact.PopTheCube.PlaySession
         private const float generationHeight = 18f;
         private const float blockHeight = 2.0f;
         
-        private Boo.Lang.List<Block> blockList;
+        private List<Block> blockList;
         private BreakingBlock.BreakingBlock[] breakingBlocks;
         private Queue<Block.Type> blockCreationQueue;
+        private List<Block> reusableBlocks;
 
+        
         public void Initialize()
         {
             StartGeneration();
@@ -31,12 +30,27 @@ namespace nopact.PopTheCube.PlaySession
             StartCreationLoop();
         }
 
+        public void Kill()
+        {
+            
+        }
 
         public void CreateNewBlock( Block.Type blockType )
         {
-            GameObject blockGO = Instantiate(blockProperties.GetBlockPrefab(blockType));
-            blockGO.transform.position = Vector3.up * generationHeight;
-            Block newBlock = blockGO.GetComponent<Block>();
+            Block newBlock;
+       /*     if (reusableBlocks != null && reusableBlocks.Count > 0)
+            {
+                newBlock = reusableBlocks[0];
+                reusableBlocks.RemoveAt(0);
+                newBlock.Resurrect();
+            }
+            else
+            {*/
+                GameObject blockGO = Instantiate(blockProperties.GetBlockPrefab(blockType));
+                blockGO.transform.position = Vector3.up * generationHeight;
+                newBlock = blockGO.GetComponent<Block>();
+          //  }
+            
             newBlock.Initialize( blockType, generationHeight, blockProperties );
             blockList.Add(newBlock);
             SetTargets();
@@ -54,7 +68,7 @@ namespace nopact.PopTheCube.PlaySession
             b.Kill(breakable, dType );
             blockList.Remove(b);
             SetTargets();
-            AddBlockToQueue();            
+            AddBlockToQueue();
         }
 
         public bool TryDash(float yPos, out Block block)
@@ -123,6 +137,17 @@ namespace nopact.PopTheCube.PlaySession
         }
 
         #region UnityEvents
+
+        private void OnEnable()
+        {
+            Block.OnReadyForUse += BlockOnOnReadyForUse;
+        }
+        
+        private void OnDisable()
+        {
+            Block.OnReadyForUse += BlockOnOnReadyForUse;
+        }
+
         private void Start()
         {
             StartGeneration();
@@ -150,7 +175,37 @@ namespace nopact.PopTheCube.PlaySession
             {
                 return;
             }
-            CheckMatches();
+
+            CheckLastBlock();
+            //CheckMatches();
+        }
+
+        private void OnGUI()
+        {
+            if (blockCreationQueue == null)
+            {
+                return;
+            }
+            GUIStyle style = new GUIStyle();
+            style.fontSize = 24;
+            style.normal.textColor = Color.black;
+            
+            GUILayout.BeginArea(new Rect(0,0,Screen.width, 400));
+            GUILayout.BeginVertical();
+            GUILayout.Label(new GUIContent(
+                $"Queue: {blockCreationQueue.Count.ToString()}"
+                ), style);
+            GUILayout.EndVertical();
+            GUILayout.EndArea();
+        }
+
+        private void CheckLastBlock()
+        {
+            var b = blockList[0];
+            if (b.IsAtRest && b.BlockType == Block.Type.D)
+            {
+                RemoveBlock(b, Block.DestructionType.Match);
+            }
         }
 
         private void CheckMatches()
@@ -188,9 +243,18 @@ namespace nopact.PopTheCube.PlaySession
 
         #endregion
         
+        private void BlockOnOnReadyForUse(Block b)
+        {
+            if (reusableBlocks == null)
+            {
+                reusableBlocks = new List<Block>();
+            }
+            reusableBlocks.Add(b);
+        }
+
         private void StartGeneration()
         {
-            blockList= new Boo.Lang.List<Block>();
+            blockList= new List<Block>();
             CreateBreakables();
         }
 

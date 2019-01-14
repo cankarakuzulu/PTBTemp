@@ -1,16 +1,26 @@
+using System;
 using System.Collections;
 using nopact.Commons.SceneDirection;
 using nopact.PopTheCube.PlaySession.Player;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace nopact.PopTheCube.PlaySession
 {
     public class SceneController : MonoBehaviour
     {
+
+        public event Action<bool> OnGameCompleted;
         [SerializeField] protected Stack _stack;
         [SerializeField] protected PlayerController _playerController;
-        
+
+        private bool isTouchDown = false;
         private static bool isControlledFromMaster;
+
+        private void Awake()
+        {
+            Application.targetFrameRate = 60;
+        }
 
         private void Start()
         {
@@ -28,6 +38,17 @@ namespace nopact.PopTheCube.PlaySession
                 {
                     ExecuteDashCommand();
                 }
+
+                if (Input.touchCount > 0 && !isTouchDown)
+                {
+                    ExecuteDashCommand();
+                    isTouchDown = true;
+                }
+
+                if (Input.touchCount == 0 && isTouchDown)
+                {
+                    isTouchDown = false;
+                }
             }
         }
 
@@ -37,7 +58,6 @@ namespace nopact.PopTheCube.PlaySession
             if (_stack.TryDash(_playerController.YPosition, out b))
             {
                 _playerController.Dash();
-                _playerController.MaxSpeed = Mathf.Min(_playerController.MaxSpeed * 1.2f, 30);
                 StartCoroutine(WaitAndBreak(b, _playerController.IsOnLeft));
             }
             else if (b != null)
@@ -53,8 +73,23 @@ namespace nopact.PopTheCube.PlaySession
 
         private void Initialize()
         {
+            _playerController.OnFailed+= PlayerControllerOnOnFailed;
             StartCoroutine(ExecuteStartSequence());
             
+        }
+
+        private void PlayerControllerOnOnFailed()
+        {
+            GameFailed();
+        }
+
+        private void GameFailed()
+        {
+            OnGameCompleted?.Invoke( false );
+            _stack.Kill();
+            _playerController.Kill();
+            SceneManager.LoadScene(0);
+             
         }
 
         private IEnumerator WaitAndBreak(Block b, bool isOnLeft)

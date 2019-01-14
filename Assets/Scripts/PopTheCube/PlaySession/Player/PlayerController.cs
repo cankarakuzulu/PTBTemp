@@ -7,11 +7,11 @@ namespace nopact.PopTheCube.PlaySession.Player
 {
 	public class PlayerController : MonoBehaviour
 	{
-		public event Action<float, bool> OnDash;
+		public event Action OnFailed;
 		[SerializeField] protected TrailRenderer dashTrail;
 		private const float  AIR_DRAG = 0.3f;
 		private Transform xform;
-		private Limits limits = new Limits(-0.5f, 10.5f);
+		private Limits limits = new Limits(-0.5f, 4.5f);
 		private Limits xAlignments = new Limits( -2.4f, 2.4f);
 		private MotionTypes motionState;
 		private Tween dashTween, rotationTween;
@@ -25,9 +25,14 @@ namespace nopact.PopTheCube.PlaySession.Player
 			SetPosition();
 			motionState = MotionTypes.Entry;
 
-			dashTween = xform.DOMoveX((isInLeft ? xAlignments.Lower : xAlignments.Upper) * 2, 1.0f).From();
+			dashTween = xform.DOMoveX((isInLeft ? xAlignments.Lower : xAlignments.Upper) * 3, 1.0f).From();
 			dashTween.SetEase(Ease.OutSine);
 			dashTween.OnComplete(OnInitializatonComplete);
+		}
+
+		public void Kill()
+		{
+			motionState = MotionTypes.Idle;
 		}
 
 		public void Dash()
@@ -68,7 +73,16 @@ namespace nopact.PopTheCube.PlaySession.Player
 		{
 			xform = GetComponent<Transform>();
 		}
-		
+
+		private void Start()
+		{
+			xform.position = new Vector3
+			{
+				x = (isInLeft ? xAlignments.Lower : xAlignments.Upper) * 3,
+				y= xform.position.y,
+				z = 0
+			};
+		}
 		private void FixedUpdate()
 		{
 			if (motionState != MotionTypes.Vertical)
@@ -94,7 +108,6 @@ namespace nopact.PopTheCube.PlaySession.Player
 		}
 		private void OnRetractionComplete()
 		{
-			OnDash?.Invoke( YPosition, isInLeft);
 			var target = isInLeft ? xAlignments.Upper : xAlignments.Lower;
 			dashTween = xform.DOMoveX(target, 0.2f);
 			dashTween.SetEase(Ease.OutSine);
@@ -120,7 +133,6 @@ namespace nopact.PopTheCube.PlaySession.Player
 			dashTrail.emitting = false;
 			dashTween.Complete();
 			isInLeft = !isInLeft;
-			Velocity = -Velocity;
 			motionState = MotionTypes.Vertical;
 		}
 		
@@ -150,6 +162,7 @@ namespace nopact.PopTheCube.PlaySession.Player
 			rotationTween.SetLoops(1, LoopType.Restart);
 			rotationTween.Complete();
 			DOTween.Kill(rotationTween);
+			OnFailed?.Invoke();
 		}
 
 		private void AdjustVelocity()

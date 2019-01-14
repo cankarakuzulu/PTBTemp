@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Diagnostics.Contracts;
 using nopact.PopTheCube.PlaySession.BreakingBlock;
@@ -7,6 +8,7 @@ namespace nopact.PopTheCube.PlaySession
 {
     public class Block : MonoBehaviour
     {
+        public static event Action<Block> OnReadyForUse;
         private const float G = -24f;
         private const float  COLLISION_ELASTICITY =0.4f;
         private const float  AIR_DRAG = 0.0f;
@@ -27,6 +29,11 @@ namespace nopact.PopTheCube.PlaySession
             SetProperties();
             SetPos();
             isInitialized = true;
+        }
+        
+        public void Resurrect()
+        {
+            renderer.enabled = true;
         }
 
         public void Collide(Block  other)
@@ -82,6 +89,7 @@ namespace nopact.PopTheCube.PlaySession
             }
             breakingBlock = null;
             renderer.enabled = false;
+            OnReadyForUse(this);
         }
 
         #endregion
@@ -174,6 +182,7 @@ namespace nopact.PopTheCube.PlaySession
             Left,
             Right
         }
+
     }
     
     
