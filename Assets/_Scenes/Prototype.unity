@@ -137,8 +137,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uTransform: {fileID: 2082740319}
-  shakeDuration: 0.3
-  shakeStrength: {x: 0.2, y: 0.2, z: 0.2}
+  shakeDuration: 0.6
+  shakeStrength: {x: 1, y: 1, z: 1}
   shakeVibrato: 30
   shakeRandomness: 70.2
   shakeEase: 3
@@ -183,6 +183,10 @@ Prefab:
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4177693587188756, guid: 86e0cc7f71846ad43a39f6e55d49b709, type: 2}
+      propertyPath: m_LocalPosition.y
+      value: 6.5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 86e0cc7f71846ad43a39f6e55d49b709, type: 2}
   m_IsPrefabAsset: 0
@@ -204,6 +208,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _stack: {fileID: 2059366533}
   _playerController: {fileID: 63960271}
+  _shaker: {fileID: 99078225}
 --- !u!1001 &1783214044
 Prefab:
   m_ObjectHideFlags: 0

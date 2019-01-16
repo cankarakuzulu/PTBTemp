@@ -10,8 +10,8 @@ namespace nopact.PopTheCube.PlaySession
     {
         public static event Action<Block> OnReadyForUse;
         private const float G = -24f;
-        private const float  COLLISION_ELASTICITY =0.4f;
-        private const float  AIR_DRAG = 0.0f;
+        private const float  COLLISION_ELASTICITY =0.05f;
+        private const float  AIR_DRAG = 0.05f;
         private GameObject uObject;
         private Transform xform;
         private MeshRenderer renderer;
@@ -23,26 +23,30 @@ namespace nopact.PopTheCube.PlaySession
         
         public void Initialize( Type blockType, float yPosition, BlockProperties properties )
         {
+            renderer.enabled = true;
             this.properties = properties;
             BlockType = blockType;
             YPosition = yPosition;
+            Velocity = 0;
+            IsAtRest = false;
             SetProperties();
             SetPos();
             isInitialized = true;
+            IsBeingRemoved = false;
+            
         }
         
         public void Resurrect()
         {
-            renderer.enabled = true;
+            gameObject.SetActive(true);
         }
 
         public void Collide(Block  other)
         {
             IsAtRest = false;
-            float resultantTotalVelocityMagnitude = Mathf.Abs (other.Velocity) +Mathf.Abs ( Velocity);
+            float resultantTotalVelocityMagnitude =other.Velocity - Velocity;
             other.Velocity += -Mathf.Sign(other.Velocity) * resultantTotalVelocityMagnitude *0.5f * ( COLLISION_ELASTICITY + 1);
             Velocity += -Mathf.Sign(Velocity) * resultantTotalVelocityMagnitude*0.5f* ( COLLISION_ELASTICITY + 1);
-            SetPos();
         }
 
         public void PhysicsUpdate()
@@ -61,23 +65,36 @@ namespace nopact.PopTheCube.PlaySession
 //            DebugLevel( YPosition, Color.green);
 //            DebugLevel( YPosition +1f, Color.red);
 //            DebugLevel( YPosition - 1f, Color.cyan);
-                SetPos();
+                
+        }
+        
+        public void SetPos()
+        {
+            xform.position = new Vector3()
+            {
+                x=xform.position.x,
+                y = YPosition,
+                z= xform.position.z
+            };
         }
            
         public void Kill(BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
         {
-            renderer.enabled = false;
             isInitialized = false;
-            
-            StartCoroutine(StartDestroyTimer());
-            breakingBlock = breaking;
-            if (breakingBlock == null)
+            renderer.enabled = false;
+            StartCoroutine(WaitForUpdate(breaking, destructionType));
+        }
+
+        private IEnumerator WaitForUpdate( BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
+        {
+            yield return new WaitForEndOfFrame();
+            if (breaking != null)
             {
-                return;
+                breaking.SetMaterial(properties.GetBlockMaterial(BlockType));
+                breaking.Explode( xform.position, destructionType );
+                breakingBlock = breaking;            
+                StartCoroutine(StartDestroyTimer());
             }
-            
-            breakingBlock.SetMaterial(properties.GetBlockMaterial(BlockType));
-            breakingBlock.Explode( xform.position, destructionType );
         }
 
         private IEnumerator StartDestroyTimer()
@@ -88,7 +105,7 @@ namespace nopact.PopTheCube.PlaySession
                 breakingBlock.Release();    
             }
             breakingBlock = null;
-            renderer.enabled = false;
+            gameObject.SetActive(false);
             OnReadyForUse(this);
         }
 
@@ -136,16 +153,7 @@ namespace nopact.PopTheCube.PlaySession
             return false;
         }
         
-        private void SetPos()
-        {
-            xform.position = new Vector3()
-            {
-                x=xform.position.x,
-                y = YPosition,
-                z= xform.position.z
-            };
-        }
-
+        
         private void DebugLevel(float pos, Color color)
         {
             Vector3 p1 = new Vector3{ x= -2, y = pos, z = 0 };
@@ -170,6 +178,7 @@ namespace nopact.PopTheCube.PlaySession
             } }
         public Type BlockType { get; private set; }
         public bool IsAtRest { get; private set; }
+        public bool IsBeingRemoved { get; set; }
         public enum Type
         {
             D,

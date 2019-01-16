@@ -11,7 +11,7 @@ namespace nopact.PopTheCube.PlaySession.Player
 		[SerializeField] protected TrailRenderer dashTrail;
 		private const float  AIR_DRAG = 0.3f;
 		private Transform xform;
-		private Limits limits = new Limits(-0.5f, 4.5f);
+		private Limits limits = new Limits(-1.0f, 5.0f);
 		private Limits xAlignments = new Limits( -2.4f, 2.4f);
 		private MotionTypes motionState;
 		private Tween dashTween, rotationTween;
@@ -42,13 +42,17 @@ namespace nopact.PopTheCube.PlaySession.Player
 				return;
 			}
 
+			if(motionState == MotionTypes.ChainDash ) 
+			{
+				ChainDashCount++;
+			}
 			dashTrail.emitting = true;
 			motionState = MotionTypes.Dash;
 			var target = isInLeft ? xAlignments.Lower -1.0f : xAlignments.Upper + 1.0f;
 			dashTween = xform.DOMoveX(target, 0.05f);
 			dashTween.SetEase(Ease.InSine);
 			dashTween.OnComplete(OnRetractionComplete);
-			rotationTween = xform.DORotate( Vector3.forward * 180, 0.3f);
+			rotationTween = xform.DORotate( Vector3.forward * 180, 0.1f);
 			rotationTween.SetRelative(true);
 		}
 
@@ -109,15 +113,15 @@ namespace nopact.PopTheCube.PlaySession.Player
 		private void OnRetractionComplete()
 		{
 			var target = isInLeft ? xAlignments.Upper : xAlignments.Lower;
-			dashTween = xform.DOMoveX(target, 0.2f);
+			dashTween = xform.DOMoveX(target, 0.1f);
 			dashTween.SetEase(Ease.OutSine);
 			StartCoroutine(StartRotation());
 		}
 
 		private IEnumerator StartRotation()
 		{
-			yield return new WaitForSeconds(0.1f);
-			rotationTween = xform.DORotate(Vector3.up * 180, 0.15f);
+			yield return new WaitForSeconds(0.05f);
+			rotationTween = xform.DORotate(Vector3.up * 180, 0.08f);
 			rotationTween.SetEase(Ease.OutExpo);
 			rotationTween.SetRelative(true);
 			rotationTween.OnComplete(OnRotationComplete);
@@ -129,13 +133,25 @@ namespace nopact.PopTheCube.PlaySession.Player
 			{
 				return;
 			}
-
-			dashTrail.emitting = false;
+			
 			dashTween.Complete();
 			isInLeft = !isInLeft;
-			motionState = MotionTypes.Vertical;
+			motionState = MotionTypes.ChainDash;
+			StopCoroutine(ChainDashRoutine());
 		}
-		
+
+		private IEnumerator ChainDashRoutine()
+		{
+			yield return	 new WaitForSeconds(0.8f);
+			if(motionState !=  MotionTypes.Dash  && motionState != MotionTypes.Vertical)
+			{
+				motionState = MotionTypes.Vertical;
+				ChainDashCount = 0;
+				Velocity = -Velocity;
+				dashTrail.emitting = false;
+			}
+		}
+
 		private void OnFRetractionComplete()
 		{
 			var target = !isInLeft ? xAlignments.Upper-1.2f : xAlignments.Lower + 1.2f;
@@ -178,7 +194,6 @@ namespace nopact.PopTheCube.PlaySession.Player
 				Acceleration = 0;
 				Velocity = Mathf.Sign(Velocity) * maxSpeed;
 			}
-			
 		}
 
 		private void AdjustAcceleration()
@@ -242,6 +257,8 @@ namespace nopact.PopTheCube.PlaySession.Player
 				z = xform.position.z
 			};
 		}
+		
+		public uint ChainDashCount { get; private set; }
 
 		public bool IsOnLeft => isInLeft;
 
@@ -254,13 +271,16 @@ namespace nopact.PopTheCube.PlaySession.Player
 		public float YPosition { get; private set; }
 		public float Velocity { get; private set; }
 		public float Acceleration { get; private set; }
-		
+
+		public MotionTypes Motion => motionState;
+	
 		public enum MotionTypes
 		{
 			Idle,
 			Entry,
 			Vertical,
 			Dash,
+			ChainDash,
 			Freefall
 		}
 		public struct Limits

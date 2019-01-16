@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using nopact.Commons.Domain.Enum;
 using nopact.Commons.SceneDirection;
+using nopact.Game.Camera;
 using nopact.PopTheCube.PlaySession.Player;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -13,7 +15,8 @@ namespace nopact.PopTheCube.PlaySession
         public event Action<bool> OnGameCompleted;
         [SerializeField] protected Stack _stack;
         [SerializeField] protected PlayerController _playerController;
-
+        [SerializeField] protected CameraShaker _shaker;
+        private SceneState _sceneState;
         private bool isTouchDown = false;
         private static bool isControlledFromMaster;
 
@@ -54,6 +57,12 @@ namespace nopact.PopTheCube.PlaySession
 
         private void ExecuteDashCommand()
         {
+            if (_sceneState < SceneState.PlayerReady  || _playerController.Motion == PlayerController.MotionTypes.Dash
+                )
+            {
+                return;
+            }
+            
             Block b;
             if (_stack.TryDash(_playerController.YPosition, out b))
             {
@@ -63,6 +72,7 @@ namespace nopact.PopTheCube.PlaySession
             else if (b != null)
             {
                 _playerController.FailDash();
+                StartCoroutine(FailTouchCoroutine());
             }
             else
             {
@@ -71,8 +81,15 @@ namespace nopact.PopTheCube.PlaySession
             }
         }
 
+        private IEnumerator FailTouchCoroutine()
+        {
+            yield return new WaitForSeconds(0.06f);
+            _shaker.ShakeIt();
+        }
+
         private void Initialize()
         {
+            
             _playerController.OnFailed+= PlayerControllerOnOnFailed;
             StartCoroutine(ExecuteStartSequence());
             
@@ -96,18 +113,38 @@ namespace nopact.PopTheCube.PlaySession
         {
             yield return new WaitForSeconds(0.1f);
             _stack.Break(b, isOnLeft ? Block.DestructionType.Left : Block.DestructionType.Right);
+            if (_playerController.ChainDashCount > 0)
+            {
+                RegisterChainDash(_playerController.ChainDashCount);
+            }
+            
+        }
+
+        private void RegisterChainDash(uint playerControllerChainDashCount)
+        {
+            Debug.Log(playerControllerChainDashCount.ToString());
         }
 
         private IEnumerator ExecuteStartSequence( )
         {
             _stack.Initialize();
+            _sceneState++;
             yield return new WaitForSeconds(1.5f);
             _playerController.Initialize();
+            _sceneState++;
         }
 
         public static bool IsControlledFromMaster
         {
             set { isControlledFromMaster = value; }
+        }
+
+        public enum SceneState
+        {
+            NotReady =0,
+            StackReady,
+            PlayerReady,
+            GameOver
         }
     }
 }

@@ -33,6 +33,7 @@ namespace nopact.PopTheCube.PlaySession.BreakingBlock
 				parts[partIndex].isKinematic = false;
 				parts[partIndex].AddForce( forceTotal, ForceMode.Impulse);
 				parts[partIndex].AddTorque(transform.forward * 160);
+				
 			}
 		}
 
@@ -44,6 +45,7 @@ namespace nopact.PopTheCube.PlaySession.BreakingBlock
 		public void Release()
 		{
 			IsReleased = true;
+			gameObject.name = "Released";
 			SetDefaults();
 		}
 		
@@ -66,13 +68,13 @@ namespace nopact.PopTheCube.PlaySession.BreakingBlock
 		{
 			for (int partIndex = 0; partIndex < parts.Length; partIndex++)
 			{
+				renderers[partIndex].enabled = false;
 				parts[partIndex].isKinematic = true;
 				parts[partIndex].angularVelocity = Vector3.zero;
 				parts[partIndex].velocity = Vector3.zero;
 
 				parts[partIndex].transform.localPosition = initialPositions[partIndex];
 				parts[partIndex].transform.localRotation = initialRotations[partIndex];
-				renderers[partIndex].enabled = false;
 			}
 		}
 
