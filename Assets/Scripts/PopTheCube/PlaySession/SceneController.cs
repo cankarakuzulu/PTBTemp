@@ -17,7 +17,7 @@ namespace nopact.PopTheCube.PlaySession
         [SerializeField] protected PlayerController _playerController;
         [SerializeField] protected CameraShaker _shaker;
         private SceneState _sceneState;
-        private bool isTouchDown = false;
+        private bool isTouchDown, isDown;
         private static bool isControlledFromMaster;
 
         private void Awake()
@@ -37,20 +37,37 @@ namespace nopact.PopTheCube.PlaySession
         {
             if (!isControlledFromMaster)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0) && !isDown)
                 {
-                    ExecuteDashCommand();
+                    isDown = true;
                 }
 
                 if (Input.touchCount > 0 && !isTouchDown)
                 {
-                    ExecuteDashCommand();
+                    isDown = true;                    
                     isTouchDown = true;
                 }
 
                 if (Input.touchCount == 0 && isTouchDown)
                 {
+                    isDown = false;
                     isTouchDown = false;
+                }
+
+                if (Input.GetMouseButtonUp(0) && isDown)
+                {
+                    isDown = false;
+                }
+
+                bool isInvoking = IsInvoking(nameof(ExecuteDashCommand));
+                if (!isInvoking&& isDown  )
+                {
+                    InvokeRepeating(nameof(ExecuteDashCommand), 0, 0.3f);
+                }
+
+                if (isInvoking && !isDown)
+                {
+                    CancelInvoke( nameof(ExecuteDashCommand));
                 }
             }
         }

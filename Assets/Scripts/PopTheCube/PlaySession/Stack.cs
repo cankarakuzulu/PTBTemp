@@ -13,7 +13,7 @@ namespace nopact.PopTheCube.PlaySession
         public static event Action<int, Block.DestructionType> OnRemoveBlock;
         [SerializeField] protected BlockProperties blockProperties;
         [SerializeField] protected bool isSlave;
-        private const float generationHeight = 1f;
+        private const float generationHeight = 12f;
         private const float blockHeight = 2.0f;
         
         private List<Block> blockList;
@@ -54,11 +54,11 @@ namespace nopact.PopTheCube.PlaySession
             else
             {
                 GameObject blockGO = Instantiate(blockProperties.GetBlockPrefab(blockType));
-                blockGO.transform.position = Vector3.up * generationHeight * (1  + blockCreationQueue.Count ) + Vector3.left * transform.position.x;
+                blockGO.transform.position = Vector3.up * generationHeight  + Vector3.left * transform.position.x;
                 newBlock = blockGO.GetComponent<Block>();
            }
             
-            newBlock.Initialize( blockType, generationHeight + blockCreationQueue.Count * blockHeight, blockProperties );
+            newBlock.Initialize( blockType, generationHeight + (99-blockCreationQueue.Count) * blockHeight, blockProperties );
             blockList.Add(newBlock);
             SetTargets();
         }
