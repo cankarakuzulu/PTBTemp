@@ -57,7 +57,7 @@ namespace nopact.PopTheCube.PlaySession
 
         private void ExecuteDashCommand()
         {
-            if (_sceneState < SceneState.PlayerReady  || _playerController.Motion == PlayerController.MotionTypes.Dash
+            if (_sceneState != SceneState.PlayerReady   || _playerController.Motion == PlayerController.MotionTypes.Dash
                 )
             {
                 return;
@@ -76,13 +76,14 @@ namespace nopact.PopTheCube.PlaySession
             }
             else
             {
-                _playerController.MaxSpeed = 15;
+                _playerController.MarkEmptyPass();
                 _playerController.Dash();
             }
         }
 
         private IEnumerator FailTouchCoroutine()
         {
+            _sceneState = SceneState.GameOver;
             yield return new WaitForSeconds(0.06f);
             _shaker.ShakeIt();
         }
@@ -108,16 +109,30 @@ namespace nopact.PopTheCube.PlaySession
             SceneManager.LoadScene(0);
              
         }
+       
+        
+        private void GameWon()
+        {
+            OnGameCompleted?.Invoke( true );
+            _stack.Kill();
+            _playerController.Kill();
+            SceneManager.LoadScene(0);
+        }
+
 
         private IEnumerator WaitAndBreak(Block b, bool isOnLeft)
         {
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.035f);
             _stack.Break(b, isOnLeft ? Block.DestructionType.Left : Block.DestructionType.Right);
             if (_playerController.ChainDashCount > 0)
             {
                 RegisterChainDash(_playerController.ChainDashCount);
             }
-            
+
+            if (_stack.Count < 1)
+            {
+                GameWon();
+            }
         }
 
         private void RegisterChainDash(uint playerControllerChainDashCount)
@@ -129,7 +144,7 @@ namespace nopact.PopTheCube.PlaySession
         {
             _stack.Initialize();
             _sceneState++;
-            yield return new WaitForSeconds(1.5f);
+            yield return new WaitForSeconds(2.0f);
             _playerController.Initialize();
             _sceneState++;
         }

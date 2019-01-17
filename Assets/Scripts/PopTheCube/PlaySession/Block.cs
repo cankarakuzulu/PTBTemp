@@ -9,13 +9,13 @@ namespace nopact.PopTheCube.PlaySession
     public class Block : MonoBehaviour
     {
         public static event Action<Block> OnReadyForUse;
-        private const float G = -24f;
-        private const float  COLLISION_ELASTICITY =0.05f;
-        private const float  AIR_DRAG = 0.05f;
+        private const float G = -85f;
+        private const float  COLLISION_ELASTICITY =0f;
+        private const float  AIR_DRAG = 0.08f;
         private GameObject uObject;
         private Transform xform;
-        private MeshRenderer renderer;
-        private bool isInitialized;
+        private new MeshRenderer renderer;
+        private bool isInitialized, forcedDrop;
         private BlockProperties properties;
         private BreakingBlock.BreakingBlock breakingBlock;
         private float target;
@@ -32,8 +32,8 @@ namespace nopact.PopTheCube.PlaySession
             SetProperties();
             SetPos();
             isInitialized = true;
+            forcedDrop = false;
             IsBeingRemoved = false;
-            
         }
         
         public void Resurrect()
@@ -81,25 +81,47 @@ namespace nopact.PopTheCube.PlaySession
         public void Kill(BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
         {
             isInitialized = false;
-            renderer.enabled = false;
+            if (BlockType == Type.N)
+            {
+                renderer.enabled = false;
+            }
             StartCoroutine(WaitForUpdate(breaking, destructionType));
         }
 
         private IEnumerator WaitForUpdate( BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
         {
             yield return new WaitForEndOfFrame();
-            if (breaking != null)
+            HandleKill( breaking, destructionType );
+        }
+
+        private void HandleKill( BreakingBlock.BreakingBlock breaking, DestructionType destructionType)
+        {
+            if (breaking != null )
             {
-                breaking.SetMaterial(properties.GetBlockMaterial(BlockType));
-                breaking.Explode( xform.position, destructionType );
-                breakingBlock = breaking;            
-                StartCoroutine(StartDestroyTimer());
+                if (BlockType == Type.N)
+                {
+                    var yRotation = BlockType == Type.D  ? 0 : 45;
+                    var scale = BlockType == Type.D ? 0.65f : 1;
+                    var totalRot = Quaternion.Euler(-90, yRotation, 0);
+                    breaking.transform.rotation = totalRot;
+                    breaking.transform.localScale = new Vector3(scale, scale, 1.0f);
+                    breaking.SetMaterial(properties.GetBlockMaterial(BlockType));
+                    breaking.Explode( xform.position, destructionType );
+                    breakingBlock = breaking;            
+                    StartCoroutine(StartDestroyTimer());
+                    return;
+                }
             }
+            
+            forcedDrop = true;
+            StartCoroutine(StartDestroyTimer());
         }
 
         private IEnumerator StartDestroyTimer()
         {
-            yield return new WaitForSeconds(6);
+            yield return new WaitForSeconds(1);
+            renderer.enabled = false;
+            yield return new WaitForSeconds(3);
             if (breakingBlock != null)
             {
                 breakingBlock.Release();    
@@ -120,11 +142,25 @@ namespace nopact.PopTheCube.PlaySession
             uObject = gameObject;
         }
 
-        
+        private void FixedUpdate()
+        {
+            if (!forcedDrop)
+            {
+                return;
+            }
+            Drop();
+            SetPos();
+        }
+
         #endregion
         
         private void SetProperties()
         {
+            var yRotation = BlockType == Type.D  ? 0 : 45;
+            var totalRot = Quaternion.Euler(-90, yRotation, 0);
+            var scale = BlockType == Type.D ? 0.67f : 1;
+            xform.rotation = totalRot;
+            xform.localScale = new Vector3(scale, scale, 1.0f);
             renderer.material = properties.GetBlockMaterial(BlockType);
         }
         
